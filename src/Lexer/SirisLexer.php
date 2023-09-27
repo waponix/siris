@@ -134,20 +134,21 @@ class SirisLexer extends Lexer
                 if (!(empty($this->getCurrentLookup()) || $this->getCurrentLookup() === self::BLOCK_END)) break;
 
                 if ($token['token'] === self::TOKEN_SPECIAL && $token['data'] === '@') {
+                    $token['pos'] += $this->offset;
                     $tokenGroup[] = $token;
                     $this->setNextLookup(self::BLOCK_END);
                     break 2;
                 }
                 
                 if ($token['token'] === self::TOKEN_OPERATOR && $token['data'] === '>') {
+                    $token['pos'] += $this->offset;
                     $tokenGroup[] = $token;
                 }
 
                 if (count($tokenGroup) === 2) {
                     $this
                         ->addBlock($this->takeCurrentBlockName(), [
-                            'loc' => dechex($this->takeStartBlock()[0]['pos']) . self::L_DIVIDER . dechex($tokenGroup[1]['pos']),
-                            'o' => dechex($this->offset),
+                            'loc' => dechex($this->takeStartBlock()[0]['pos']) . self::L_DIVIDER . dechex($tokenGroup[1]['pos'])
                         ])
                         ->moveToNextLookup();
                     $tokenGroup = [];
