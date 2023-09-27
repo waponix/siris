@@ -146,8 +146,10 @@ class SirisLexer extends Lexer
                 }
 
                 if (count($tokenGroup) === 2) {
+                    $name = $this->takeCurrentBlockName();
                     $this
-                        ->addBlock($this->takeCurrentBlockName(), [
+                        ->addBlock($name, [
+                            'name' => $this->getRealName($name),
                             'loc' => dechex($this->takeStartBlock()[0]['pos']) . self::L_DIVIDER . dechex($tokenGroup[1]['pos'])
                         ])
                         ->moveToNextLookup();

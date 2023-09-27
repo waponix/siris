@@ -4,22 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }}</title>
-    <@ stylesheets @>
+    <@stylesheets@>
 </head>
 <body>
     <header>
-        <@header 
-            <div id="menu">
-                <@menu @> 
-            </div>
-        @>
+        <@header@>
     </header>
     <section>
-        <@sectionContent hello world@>
+        <@body<@panel<@panelHead@> <@panelBody@> <@panelFooter@>@>@>
     </section>
     <footer>
-        <@footer @>
+        <@footer@>
     </footer>
-    <@javascripts @>
+    <@javascripts@>
 </body>
 </html>

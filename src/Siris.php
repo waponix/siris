@@ -32,14 +32,23 @@ class Siris
 
     private function interpretBlock(array &$block, ?array $parent = null): void
     {
+        // get the context for the block
         $range = $this->getBlockRange($block);  
-        $block['ctx'] = $this->getContext($range);
+        $parentContext = $parent['ctx'] ?? null;
+        $offset = 0;
+        if ($parent !== null) {
+            $offset = array_sum($this->getBlockRange($parent));
+        }
+
+        $block['ctx'] = $this->getContext($range, $parentContext, $offset);
         
         if ($block['hasChild'] === true) {
             foreach ($block['children'] as &$childBlock) {
                 $this->interpretBlock($childBlock, $block);
             }   
         }
+
+        // begin running the block instructions and modify the context when necessary 
     }
 
     private function getBlockRange(array $block): array
@@ -55,8 +64,12 @@ class Siris
         ];
     }
 
-    private function getContext(array $range, ?string $cache = null): string
+    private function getContext(array $range, ?string $cache = null, int $offset = 0): string
     {
+        if ($cache !== null) {
+            return substr($cache, $range['pos'] - $offset, $range['len']);    
+        }
+
         return file_get_contents($this->file, false, null, $range['pos'], $range['len']);
     }
 }
