@@ -21,13 +21,6 @@ Siris is an open-source project dedicated to creating a templating engine in PHP
 
 - **Component Communication**: The project supports communication between components, enabling parent-child and sibling components to exchange data and trigger actions.
 
-## Project Structure
-- **Component API**: This section defines the API and structure for creating components, including guidelines for developers to follow when defining their components.
-
-- **Component Examples**: A collection of example components demonstrating various use cases and ways to structure components effectively.
-
-- **Documentation**: Comprehensive documentation on how to define, compose, and work with components in Siris, including best practices and guidelines.
-
 ## Contribution and Collaboration
 Siris welcomes contributions from the community to enhance component composition capabilities and overall project functionality. Developers are encouraged to contribute by creating new components, improving existing ones, suggesting enhancements, or addressing issues.
 
