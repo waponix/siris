@@ -12,8 +12,6 @@ use Waponix\Siris\Lexer\SirisLexer;
 )]
 class Siris
 {
-    const PLACHOLDER_FILLER = '@';
-
     private ?string $file = null;
 
     public function __construct(private readonly Lexer $lexer)
