@@ -7,15 +7,27 @@
     <@stylesheets@>
 </head>
 <body>
-    <header>
-        <@header@>
-    </header>
+    <@header
+        <header>
+            <@menu
+                <@foreach (items as item)
+                    <nav>{{ item }}</nav>
+                @>
+            @>
+        </header>
+    @>
+    <@body
     <section>
-        <@body<@panel<@panelHead@> <@panelBody@> <@panelFooter@>@>@>
+        <@panel
+            <@panelHead@>
+            <@panelBody@>
+            <@panelFooter@>
+        @>
     </section>
-    <footer>
-        <@footer@>
-    </footer>
+    @>
+    <@footer
+        <footer></footer>
+    @>
     <@javascripts@>
 </body>
 </html>

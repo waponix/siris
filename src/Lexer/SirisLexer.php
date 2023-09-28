@@ -149,6 +149,7 @@ class SirisLexer extends Lexer
                     $name = $this->takeCurrentBlockName();
                     $this
                         ->addBlock($name, [
+                            'id' => $name,
                             'name' => $this->getRealName($name),
                             'loc' => dechex($this->takeStartBlock()[0]['pos']) . self::L_DIVIDER . dechex($tokenGroup[1]['pos'])
                         ])

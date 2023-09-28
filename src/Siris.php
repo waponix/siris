@@ -12,6 +12,8 @@ use Waponix\Siris\Lexer\SirisLexer;
 )]
 class Siris
 {
+    const PLACHOLDER_FILLER = '@';
+
     private ?string $file = null;
 
     public function __construct(private readonly Lexer $lexer)
@@ -30,10 +32,10 @@ class Siris
         echo json_encode($blocks, JSON_PRETTY_PRINT);
     }
 
-    private function interpretBlock(array &$block, ?array $parent = null): void
+    private function interpretBlock(array &$block, ?array &$parent = null): void
     {
         // get the context for the block
-        $range = $this->getBlockRange($block);  
+        $position = $range = $this->getBlockRange($block);
         $parentContext = $parent['ctx'] ?? null;
         $offset = 0;
         if ($parent !== null) {
@@ -45,10 +47,17 @@ class Siris
         if ($block['hasChild'] === true) {
             foreach ($block['children'] as &$childBlock) {
                 $this->interpretBlock($childBlock, $block);
-            }   
+            }
         }
 
         // begin running the block instructions and modify the context when necessary 
+
+        if ($parent !== null) {
+            // replace the parent's context with  placeholder to be used later as replacement point and reduce memory usage
+            $ctxLen = strlen($block['ctx']);
+            $placeholder = implode('', ['<@', $block['id'], '@>']);
+            $parent['ctx'] = substr_replace($parent['ctx'], $placeholder, $range['pos'] - $offset, $ctxLen);
+        }
     }
 
     private function getBlockRange(array $block): array
