@@ -1,7 +1,7 @@
 <?php
 namespace Waponix\Siris\Lexer;
 
-class SirisLexer extends Lexer
+class BlockLexer extends Lexer
 {
     const BLOCK_START = 'BLOCK_S';
     const BLOCK_END = 'BLOCK_E';

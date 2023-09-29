@@ -3,11 +3,11 @@ namespace Waponix\Siris;
 
 use Waponix\Pocket\Attribute\Service;
 use Waponix\Siris\Lexer\Lexer;
-use Waponix\Siris\Lexer\SirisLexer;
+use Waponix\Siris\Lexer\BlockLexer;
 
 #[Service(
     args: [
-        'lexer' => SirisLexer::class,
+        'lexer' => BlockLexer::class,
     ]
 )]
 class Siris
@@ -60,7 +60,7 @@ class Siris
 
     private function getBlockRange(array $block): array
     {
-        list($x, $y) = explode(SirisLexer::L_DIVIDER, $block['loc']);
+        list($x, $y) = explode(BlockLexer::L_DIVIDER, $block['loc']);
 
         $pos = hexdec($x);
         $length = (hexdec($y) - $pos) + 1;
@@ -71,7 +71,7 @@ class Siris
         ];
     }
 
-    private function getContext(array $range, ?string $cache = null, int $offset = 0): string
+    private function getContext(array $range, ?string &$cache = null, int $offset = 0): string
     {
         if ($cache !== null) {
             return substr($cache, $range['pos'] - $offset, $range['len']);    
