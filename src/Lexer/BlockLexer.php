@@ -3,23 +3,29 @@ namespace Waponix\Siris\Lexer;
 
 class BlockLexer extends Lexer
 {
-    const BLOCK_START = 'BLOCK_S';
-    const BLOCK_END = 'BLOCK_E';
-    const BLOCK_NAME = 'BLOCK_N';
+    const BLOCK_START   = 'BLOCK_S';
+    const BLOCK_END     = 'BLOCK_E';
+    const BLOCK_NAME    = 'BLOCK_N';
 
-    const NODE_BLOCK = 'n_block';
-    const NODE_IFELSE = 'n_ifelse';
-    const NODE_FORLOOP = 'n_forloop';
-    const NODE_SET = 'n_set';
-    const NODE_PRINT = 'n_print';
-    const NODE_INCLUDE = 'n_include';
-    const NODE_EXTENDS = 'n_extends';
+    const NODE_BLOCK        = 'n_block';
+    const NODE_IFELSE       = 'n_ifelse';
+    const NODE_FORLOOP      = 'n_forloop';
+    const NODE_SET          = 'n_set';
+    const NODE_PRINT        = 'n_print';
+    const NODE_INCLUDE      = 'n_include';
+    const NODE_EXTENDS      = 'n_extends';
+    const NODE_ARG          = 'n_arg';
+    const NODE_COMPONENT    = 'n_component';
+    const NODE_USE          = 'n_use';
 
-    const RSRV_KEY_SET = 'set';
-    const RSRV_KEY_IF = 'if';
-    const RSRV_KEY_FOR = 'foreach';
-    const RSRV_KEY_INCLUDE = 'include';
-    const RSRV_KEY_EXTENDS = 'extends';
+    const RSRV_KEY_SET          = 'set';
+    const RSRV_KEY_IF           = 'if';
+    const RSRV_KEY_FOR          = 'foreach';
+    const RSRV_KEY_INCLUDE      = 'include';
+    const RSRV_KEY_EXTENDS      = 'extends';
+    const RSRV_KEY_ARG          = 'arg';
+    const RSRV_KEY_COMPONENT    = 'component';
+    const RSRV_KEY_USE          = 'use';
 
     const N_DIVIDER = '_';
     const L_DIVIDER = '.';
@@ -30,6 +36,9 @@ class BlockLexer extends Lexer
         self::RSRV_KEY_FOR,
         self::RSRV_KEY_INCLUDE,
         self::RSRV_KEY_EXTENDS,
+        self::RSRV_KEY_ARG,
+        self::RSRV_KEY_COMPONENT,
+        self::RSRV_KEY_USE,
     ];
 
     private $blocks = [];
@@ -208,13 +217,16 @@ class BlockLexer extends Lexer
 
     private function identifyNode(string $name): string
     {
-        return match($name) {
+        return match(strtolower($name)) {
             self::RSRV_KEY_EXTENDS => self::NODE_EXTENDS,
             self::RSRV_KEY_INCLUDE => self::NODE_INCLUDE,
             self::RSRV_KEY_FOR => self::NODE_FORLOOP,
             self::RSRV_KEY_IF => self::NODE_IFELSE,
             self::RSRV_KEY_SET => self::NODE_SET,
-            $name => self::NODE_BLOCK,
+            self::RSRV_KEY_ARG => self::NODE_ARG,
+            self::RSRV_KEY_COMPONENT => self::NODE_COMPONENT,
+            self::RSRV_KEY_USE => self::NODE_USE,
+            strtolower($name) => self::NODE_BLOCK,
         };
     }
 
