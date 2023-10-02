@@ -30,16 +30,29 @@ class Siris
             $this->interpretBlock($block);
         }
 
-        $content = '';
+        $content = [];
+        $pos = 0;
         foreach ($blocks as &$block) {
-            $content .= $this->buildContext($block);
+            $range = $this->getBlockRange($block);
+            $inBetween = $this->getContext(['pos' => $pos, 'len' => ($range['pos'] - $pos)]);
+            if ($inBetween !== '') {
+                $content[] = $inBetween;
+            }
+            $pos = $range['pos'] + $range['len'];
+            $content[] = $this->buildContext($block);
+        }
+
+        // try getting the last context if there is
+        $endContext = $this->getContext(['pos' => $pos, 'len' => null]);
+        if ($endContext !== '') {
+            $content[] = $endContext;
         }
 
         $targetFile = array_filter(explode('.', $file), function ($value) {
             return $value !== 'srs';
         });
 
-        file_put_contents(implode('.', $targetFile), $content);
+        file_put_contents(implode('.', $targetFile), implode($content));
     }
 
     private function interpretBlock(array &$block, ?array &$parent = null): void
@@ -179,6 +192,10 @@ class Siris
             return substr($cache, $range['pos'] - $offset, $range['len']);    
         }
 
-        return file_get_contents($this->file, false, null, $range['pos'], $range['len']);
+        try {
+            return file_get_contents($this->file, false, null, $range['pos'], $range['len']);
+        } catch (\Exception $exception) {
+            return '';
+        }
     }
 }

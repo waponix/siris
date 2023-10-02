@@ -4,7 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }}</title>
-    {@ stylesheets @}
+    {@ stylesheets
+        <style>
+            body * {
+                padding: 0;
+                margin: 0;
+                position: relative;
+            }
+        </style>     
+    @}
 </head>
 
 <body>
@@ -29,8 +37,18 @@
     </section>
     @}
     {@ footer
-        <footer></footer>
+        <footer>
+            <div class="row">
+                <div class="col-4"></div>
+                <div class="col-4"></div>
+                <div class="col-4"></div>
+            </div>
+        </footer>
     @}
-    {@ javascripts @}
+    {@ javascripts
+        <script>
+            console.log('Hello world');
+        </script>
+    @}
 </body>
 </html>
