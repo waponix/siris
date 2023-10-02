@@ -7,27 +7,39 @@ use Waponix\Siris\Lexer\BlockLexer;
 
 #[Service(
     args: [
-        'lexer' => BlockLexer::class,
+        'blockLexer' => BlockLexer::class,
     ]
 )]
 class Siris
 {
     private ?string $file = null;
 
-    public function __construct(private readonly Lexer $lexer)
+    public function __construct(
+            private readonly Lexer $blockLexer,
+            private readonly Lexer $lexer,
+        )
     {
     }
 
     public function render($file)
     {
         $this->file = $file;
-        $blocks = $this->lexer->parseFile($file);
+        $blocks = $this->blockLexer->parseFile($file);
 
         foreach ($blocks as &$block) {
             $this->interpretBlock($block);
         }
 
-        echo json_encode($blocks, JSON_PRETTY_PRINT);
+        $content = '';
+        foreach ($blocks as &$block) {
+            $content .= $this->buildContext($block);
+        }
+
+        $targetFile = array_filter(explode('.', $file), function ($value) {
+            return $value !== 'srs';
+        });
+
+        file_put_contents(implode('.', $targetFile), $content);
     }
 
     private function interpretBlock(array &$block, ?array &$parent = null): void
@@ -52,10 +64,100 @@ class Siris
 
         if ($parent !== null) {
             // replace the parent's context with  placeholder to be used later as replacement point and reduce memory usage
-            $ctxLen = strlen($block['ctx']);
-            $placeholder = implode('', ['<@', $block['id'], '@>']);
-            $parent['ctx'] = substr_replace($parent['ctx'], $placeholder, $range['pos'] - $offset, $ctxLen);
+            $placeholder = implode('', ['{@', $block['id'], '@}']);
+            $parent['ctx'] = substr_replace($parent['ctx'], $placeholder, $range['pos'] - $offset, $range['len']);
         }
+
+        // remove unnecessary characters and symbols
+        switch ($block['node']) {
+            case BlockLexer::NODE_COMPONENT:
+                $this->normalizeComponentBlock($block);
+                break;
+            case BlockLexer::NODE_FORLOOP:
+            case BlockLexer::NODE_IF: 
+                $this->normalizeSpecialBlock($block);
+                break;
+            default: $this->normalizeBlock($block);
+        }
+    }
+
+    private function buildContext(array $block)
+    {
+        $blockContext = $block['ctx'];
+
+        if ($block['hasChild'] === true) {
+            foreach ($block['children'] as $childBlock) {
+                $blockContext = str_replace('{@' . $childBlock['id'] . '@}' , $this->buildContext($childBlock), $blockContext);
+            }
+        }
+
+        return trim($blockContext);
+    }
+
+    private function normalizeComponentBlock(array &$block)
+    {
+        $tokens = $this->lexer->parse($block['ctx']);
+
+        $token = array_shift($tokens);
+        while (!!$token) {
+            if ($token['data'] === BlockLexer::RSRV_KEY_CONTAINS) break;
+            $token = array_shift($tokens);
+        }
+
+        // remove the last two token to remove the closing block
+        array_pop($tokens);
+        array_pop($tokens);
+
+        $ctx = '';
+        foreach ($tokens as $token) {
+            $ctx .= $token['data'];
+        }
+
+        $block['ctx'] = $ctx;
+    }
+
+    private function normalizeSpecialBlock(array &$block)
+    {
+        $tokens = $this->lexer->parse($block['ctx']);
+
+        $token = array_shift($tokens);
+        while (!!$token) {
+            if ($token['data'] === BlockLexer::RSRV_KEY_THEN) break;
+            $token = array_shift($tokens);
+        }
+
+        // remove the last two token to remove the closing block
+        array_pop($tokens);
+        array_pop($tokens);
+
+        $ctx = '';
+        foreach ($tokens as $token) {
+            $ctx .= $token['data'];
+        }
+
+        $block['ctx'] = $ctx;
+    }
+
+    private function normalizeBlock(array &$block)
+    {
+        $tokens = $this->lexer->parse($block['ctx']);
+
+        $token = array_shift($tokens);
+        while (!!$token) {
+            if ($token['data'] === $block['name']) break;
+            $token = array_shift($tokens);
+        }
+
+        // remove the last two token to remove the closing block
+        array_pop($tokens);
+        array_pop($tokens);
+
+        $ctx = '';
+        foreach ($tokens as $token) {
+            $ctx .= $token['data'];
+        }
+
+        $block['ctx'] = $ctx;
     }
 
     private function getBlockRange(array $block): array

@@ -3,31 +3,37 @@ namespace Waponix\Siris\Lexer;
 
 class BlockLexer extends Lexer
 {
-    const BLOCK_START   = 'BLOCK_S';
-    const BLOCK_END     = 'BLOCK_E';
-    const BLOCK_NAME    = 'BLOCK_N';
+    const BLOCK_START = 'BLOCK_S';
+    const BLOCK_END   = 'BLOCK_E';
+    const BLOCK_NAME  = 'BLOCK_N';
 
-    const NODE_BLOCK        = 'n_block';
-    const NODE_IFELSE       = 'n_ifelse';
-    const NODE_FORLOOP      = 'n_forloop';
-    const NODE_SET          = 'n_set';
-    const NODE_PRINT        = 'n_print';
-    const NODE_INCLUDE      = 'n_include';
-    const NODE_EXTENDS      = 'n_extends';
-    const NODE_ARG          = 'n_arg';
-    const NODE_COMPONENT    = 'n_component';
-    const NODE_USE          = 'n_use';
+    const NODE_BLOCK     = 'n_block';
+    const NODE_IF        = 'n_if';
+    const NODE_FORLOOP   = 'n_forloop';
+    const NODE_SET       = 'n_set';
+    const NODE_PRINT     = 'n_print';
+    const NODE_INCLUDE   = 'n_include';
+    const NODE_EXTENDS   = 'n_extends';
+    const NODE_ATTR      = 'n_attr';
+    const NODE_COMPONENT = 'n_component';
+    const NODE_USE       = 'n_use';
+    const NODE_EXPRESSION = 'n_expression';
 
-    const RSRV_KEY_SET          = 'set';
-    const RSRV_KEY_IF           = 'if';
-    const RSRV_KEY_FOR          = 'foreach';
-    const RSRV_KEY_INCLUDE      = 'include';
-    const RSRV_KEY_EXTENDS      = 'extends';
-    const RSRV_KEY_ARG          = 'arg';
-    const RSRV_KEY_COMPONENT    = 'component';
-    const RSRV_KEY_USE          = 'use';
+    const RSRV_KEY_SET       = 'set';
+    const RSRV_KEY_IF        = 'if';
+    const RSRV_KEY_ELSEIF    = 'elseif';
+    const RSRV_KEY_ELSE      = 'else';
+    const RSRV_KEY_FOR       = 'foreach';
+    const RSRV_KEY_INCLUDE   = 'include';
+    const RSRV_KEY_EXTENDS   = 'extends';
+    const RSRV_KEY_ATTR      = 'attr';
+    const RSRV_KEY_COMPONENT = 'component';
+    const RSRV_KEY_USE       = 'use';
+    const RSRV_KEY_QM        = '?';
+    const RSRV_KEY_THEN      = 'then';
+    const RSRV_KEY_CONTAINS  = 'contains';
 
-    const N_DIVIDER = '_';
+    const N_DIVIDER = '0';
     const L_DIVIDER = '.';
 
     const RSRV_KEYS = [
@@ -36,9 +42,10 @@ class BlockLexer extends Lexer
         self::RSRV_KEY_FOR,
         self::RSRV_KEY_INCLUDE,
         self::RSRV_KEY_EXTENDS,
-        self::RSRV_KEY_ARG,
+        self::RSRV_KEY_ATTR,
         self::RSRV_KEY_COMPONENT,
         self::RSRV_KEY_USE,
+        self::RSRV_KEY_QM,
     ];
 
     private $blocks = [];
@@ -95,7 +102,11 @@ class BlockLexer extends Lexer
                 if ($this->getCurrentLookup() !== self::BLOCK_NAME) break;
                 
                 // begin looking for the block name
-                if ($token['token'] === self::TOKEN_STRING) {
+
+                if (
+                    ($token['token'] === self::TOKEN_SPECIAL && $token['data'] === '?') || 
+                    $token['token'] === self::TOKEN_STRING
+                ) {
                     $this
                         ->setCurrentBlockName($token)
                         ->moveToNextLookup();
@@ -108,7 +119,7 @@ class BlockLexer extends Lexer
                 // only look for start if it hasn't started looking for end
                 if (!(empty($this->getCurrentLookup()) || $this->getCurrentLookup() === self::BLOCK_START)) break;
 
-                if ($token['token'] === self::TOKEN_OPERATOR && $token['data'] === '<') {
+                if ($token['token'] === self::TOKEN_BRACKET && $token['data'] === '{') {
                     $token['pos'] += $this->offset;
                     $tokenGroup[] = $token;
                     $this->setNextLookup(self::BLOCK_START);
@@ -149,7 +160,7 @@ class BlockLexer extends Lexer
                     break 2;
                 }
                 
-                if ($token['token'] === self::TOKEN_OPERATOR && $token['data'] === '>') {
+                if ($token['token'] === self::TOKEN_BRACKET && $token['data'] === '}') {
                     $token['pos'] += $this->offset;
                     $tokenGroup[] = $token;
                 }
@@ -221,11 +232,12 @@ class BlockLexer extends Lexer
             self::RSRV_KEY_EXTENDS => self::NODE_EXTENDS,
             self::RSRV_KEY_INCLUDE => self::NODE_INCLUDE,
             self::RSRV_KEY_FOR => self::NODE_FORLOOP,
-            self::RSRV_KEY_IF => self::NODE_IFELSE,
+            self::RSRV_KEY_IF => self::NODE_IF,
             self::RSRV_KEY_SET => self::NODE_SET,
-            self::RSRV_KEY_ARG => self::NODE_ARG,
+            self::RSRV_KEY_ATTR => self::NODE_ATTR,
             self::RSRV_KEY_COMPONENT => self::NODE_COMPONENT,
             self::RSRV_KEY_USE => self::NODE_USE,
+            self::RSRV_KEY_QM => self::NODE_EXPRESSION,
             strtolower($name) => self::NODE_BLOCK,
         };
     }

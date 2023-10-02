@@ -6,18 +6,18 @@ namespace Waponix\Siris\Lexer;
  */
 class Lexer
 {
-    const TOKEN_STRING = 'STR';
-    const TOKEN_NUMBER = 'NUM';
-    const TOKEN_SPACE = 'SPACE';
-    const TOKEN_COLON = 'COLON';
+    const TOKEN_STRING      = 'STR';
+    const TOKEN_NUMBER      = 'NUM';
+    const TOKEN_SPACE       = 'SPACE';
+    const TOKEN_COLON       = 'COLON';
     const TOKEN_PARENTHESIS = 'PARENTHESIS';
-    const TOKEN_BRACKET = 'BRACKET';
-    const TOKEN_OPERATOR = 'OP';
-    const TOKEN_QUOTE = 'QUOTE';
-    const TOKEN_NEWLINE = 'NL';
-    const TOKEN_COMMA = 'COMMA';
-    const TOKEN_DOT = 'DOT';
-    const TOKEN_SPECIAL = 'SPECIAL';
+    const TOKEN_BRACKET     = 'BRACKET';
+    const TOKEN_OPERATOR    = 'OP';
+    const TOKEN_QUOTE       = 'QUOTE';
+    const TOKEN_NEWLINE     = 'NL';
+    const TOKEN_COMMA       = 'COMMA';
+    const TOKEN_DOT         = 'DOT';
+    const TOKEN_SPECIAL     = 'SPECIAL';
 
     // Symbol hashmap that correspond with the token
     private $symbols = [
@@ -151,7 +151,6 @@ class Lexer
         $this->state = $state;
         return $this;
     }
-
 
     /**
      * Checks if the current state is same with the previous
