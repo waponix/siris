@@ -4,51 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }}</title>
-    {@ stylesheets
-        <style>
-            body * {
-                padding: 0;
-                margin: 0;
-                position: relative;
-            }
-        </style>     
-    @}
+    {@ stylesheets @}
 </head>
-
 <body>
-    {@ header
-        <header>
-            {@ menu items = menuItems @}
-        </header>
-    @}
-    {@ body
-    <section>
-        {@ panel
-            {@ panelHead 
-                <div>{@ test hello world @}</div> 
-            @}
-            {@ panelBody 
-                <div></div> 
-            @}
-            {@ panelFooter 
-                <div></div> 
-            @}
-        @}
-    </section>
-    @}
-    {@ footer
-        <footer>
-            <div class="row">
-                <div class="col-4"></div>
-                <div class="col-4"></div>
-                <div class="col-4"></div>
-            </div>
-        </footer>
-    @}
-    {@ javascripts
-        <script>
-            console.log('Hello world');
-        </script>
-    @}
+    <header>{@ header body @}</header>
+    <section>{@ body body @}</section>
+    <footer>{@ footer footer @}</footer>
+    {@ javascripts @}
 </body>
 </html>

@@ -52,7 +52,16 @@ class Siris
             return $value !== 'srs';
         });
 
-        file_put_contents(implode('.', $targetFile), implode($content));
+        $targetFile = implode('.', $targetFile);
+        if (file_exists($targetFile)) {
+            file_put_contents($targetFile, '');
+        }
+
+        foreach ($content as $context) {
+            file_put_contents($targetFile, $context, FILE_APPEND);
+        }
+
+        return $this;
     }
 
     private function interpretBlock(array &$block, ?array &$parent = null): void
@@ -83,6 +92,10 @@ class Siris
 
         // remove unnecessary characters and symbols
         switch ($block['node']) {
+            case BlockLexer::NODE_EXPRESSION:
+            case BlockLexer::NODE_EXTENDS:
+                $block['ctx'] = ''; // clear the whole context
+                break;
             case BlockLexer::NODE_COMPONENT:
                 $this->normalizeComponentBlock($block);
                 break;
@@ -188,6 +201,9 @@ class Siris
 
     private function getContext(array $range, ?string &$cache = null, int $offset = 0): string
     {
+        if ($range['len'] < 0) {
+            var_dump($range, $cache, $offset);
+        }
         if ($cache !== null) {
             return substr($cache, $range['pos'] - $offset, $range['len']);    
         }

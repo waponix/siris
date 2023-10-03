@@ -67,7 +67,10 @@ class BlockLexer extends Lexer
             $this->identifyBlocks($token, $tokenGroup);
         }
 
-        return $this->blocks;
+        $blocks = $this->blocks;
+        $this->reset();
+
+        return $blocks;
     }
 
     public function parseFile(string $file): array
@@ -91,8 +94,10 @@ class BlockLexer extends Lexer
         }
 
         fclose($handle);
+        $blocks = $this->blocks;
+        $this->reset();
 
-        return $this->blocks;
+        return $blocks;
     }
 
     private function identifyBlocks(array $token, array &$tokenGroup): self
@@ -306,5 +311,16 @@ class BlockLexer extends Lexer
     private function getRealName($name)
     {
         return strtok($name, self::N_DIVIDER);
+    }
+
+    private function reset()
+    {
+        $this->blocks = [];
+        $this->startBlocks = [];
+        $this->blockNames = [];
+        $this->lookups = [];
+        $this->blockGroups = [];
+        $this->nodes = [];
+        $this->offset = 0;
     }
 }
