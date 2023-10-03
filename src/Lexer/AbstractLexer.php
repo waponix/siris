@@ -4,7 +4,7 @@ namespace Waponix\Siris\Lexer;
 /**
  * Converts a string value into an array of tokens
  */
-class Lexer
+class AbstractLexer
 {
     const TOKEN_STRING      = 'STR';
     const TOKEN_NUMBER      = 'NUM';

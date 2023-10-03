@@ -7,9 +7,15 @@
     {@ stylesheets @}
 </head>
 <body>
-    <header>{@ header body @}</header>
-    <section>{@ body body @}</section>
-    <footer>{@ footer footer @}</footer>
+    <header>
+    {@ header
+        <div id="menu">
+        {@ menu @}
+        </div>    
+    @}
+    </header>
+    <section>{@ body @}</section>
+    <footer>{@ footer @}</footer>
     {@ javascripts @}
 </body>
 </html>

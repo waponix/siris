@@ -1,7 +1,32 @@
 {@ extends './view/template.srs.html' @}
 
-{@ body body @}
+{@ body 
+    <div class="container"></div>
+@}
 
-{@ footer footer @}
+{@ footer 
+    <p>All rights reserved 2023</p>    
+@}
 
-{@ header header @}
+{@ header 
+    <div id="main-menu">
+        <nav>item1</nav>
+        <nav>item2</nav>
+        <nav>item3</nav>
+    </div>  
+@}
+
+{@ stylesheets
+    
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+        }
+    </style>
+@}
+{@ javascripts
+    <script>
+        console.log('hello world');
+    </script>
+@}

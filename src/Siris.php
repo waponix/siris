@@ -2,12 +2,12 @@
 namespace Waponix\Siris;
 
 use Waponix\Pocket\Attribute\Service;
-use Waponix\Siris\Lexer\Lexer;
+use Waponix\Siris\Lexer\AbstractLexer;
 use Waponix\Siris\Lexer\BlockLexer;
 
 #[Service(
     args: [
-        'blockLexer' => BlockLexer::class,
+        'lexer' => BlockLexer::class,
     ]
 )]
 class Siris
@@ -15,19 +15,27 @@ class Siris
     private ?string $file = null;
 
     public function __construct(
-            private readonly Lexer $blockLexer,
-            private readonly Lexer $lexer,
+            private readonly AbstractLexer $lexer,
         )
     {
     }
 
-    public function render($file)
+    public function render(string $file)
     {
-        $this->file = $file;
-        $blocks = $this->blockLexer->parseFile($file);
+        $blocks = $this->load($file);
 
-        foreach ($blocks as &$block) {
-            $this->interpretBlock($block);
+        // will contain block values if the file is extending a template
+        $parentBlocks = $this->getParentTemplate($blocks, $map);
+
+        if ($parentBlocks !== null) {
+            foreach ($blocks as $id => $block) {
+                // get the targetted block to update
+                $target = $map[$id];
+                $this->updateBlock($parentBlocks, $target, $block);
+            }
+
+            // swap the blocks with the parent block
+            $blocks = $parentBlocks;
         }
 
         $content = [];
@@ -64,6 +72,50 @@ class Siris
         return $this;
     }
 
+    private function getParentTemplate(array &$blocks, ?array &$map = []): null|array
+    {
+        if (current($blocks)['node'] === BlockLexer::NODE_EXTENDS) {
+            $block = array_shift($blocks);
+            // loading the extended template will update the source file
+            $tokens = $this->lexer->parse($block['exp']);
+
+            $start = null;
+            $file = [];
+            foreach ($tokens as $token) {
+                if ($start === null && $token['token'] === AbstractLexer::TOKEN_QUOTE) {
+                    $start = $token['data'];
+                    continue;
+                }
+
+                if ($start === null) continue;
+
+                if ($start !== null && $start === $token['data']) break;
+
+                $file[] = $token['data'];
+            }
+
+            $parentBlocks = $this->load(implode($file), $map);
+
+            return $parentBlocks;
+        }
+
+        return null;
+    }
+
+    private function load(string $file, ?array &$map = []): array
+    {
+        $this->file = $file;
+        $blocks = $this->lexer->parseFile($file);
+        $map = $this->lexer->getBlockMap();
+        $this->lexer->reset();
+
+        foreach ($blocks as &$block) {
+            $this->interpretBlock($block);
+        }
+
+        return $blocks;
+    }
+
     private function interpretBlock(array &$block, ?array &$parent = null): void
     {
         // get the context for the block
@@ -94,7 +146,7 @@ class Siris
         switch ($block['node']) {
             case BlockLexer::NODE_EXPRESSION:
             case BlockLexer::NODE_EXTENDS:
-                $block['ctx'] = ''; // clear the whole context
+                $this->normalizeExpressionBlock($block);
                 break;
             case BlockLexer::NODE_COMPONENT:
                 $this->normalizeComponentBlock($block);
@@ -107,7 +159,7 @@ class Siris
         }
     }
 
-    private function buildContext(array $block)
+    private function buildContext(array $block): string
     {
         $blockContext = $block['ctx'];
 
@@ -120,7 +172,30 @@ class Siris
         return trim($blockContext);
     }
 
-    private function normalizeComponentBlock(array &$block)
+    private function normalizeExpressionBlock(array &$block): void
+    {
+        $tokens = $this->lexer->parse($block['ctx']);
+
+        $token = array_shift($tokens);
+        while (!!$token) {
+            if ($token['data'] === $block['name']) break;
+            $token = array_shift($tokens);
+        }
+
+        // remove the last two token to remove the closing block
+        array_pop($tokens);
+        array_pop($tokens);
+
+        $exp = '';
+        foreach ($tokens as $token) {
+            $exp .= $token['data'];
+        }
+
+        $block['exp'] = $exp;
+        $block['ctx'] = '';
+    }
+
+    private function normalizeComponentBlock(array &$block): void
     {
         $tokens = $this->lexer->parse($block['ctx']);
 
@@ -142,7 +217,7 @@ class Siris
         $block['ctx'] = $ctx;
     }
 
-    private function normalizeSpecialBlock(array &$block)
+    private function normalizeSpecialBlock(array &$block): void
     {
         $tokens = $this->lexer->parse($block['ctx']);
 
@@ -213,5 +288,35 @@ class Siris
         } catch (\Exception $exception) {
             return '';
         }
+    }
+
+    private function updateBlock(array &$blocks, string $target, array $newBlock): self
+    {
+        $keys = explode('.', $target);
+        $key = array_shift($keys);
+
+        $found = true;
+        $block = &$blocks[$key];
+
+        $key = array_shift($keys);
+        while ($key !== null) {
+            if (!isset($block['children'], $block['children'][$key])) {
+                $found = false;
+                break;
+            }
+
+            $block = &$block['children'][$key];
+
+            $key = array_shift($keys);
+        }
+
+        if ($found === true) {
+            $block['ctx'] = $newBlock['ctx'];
+            if (isset($newBlock['children'])) {
+                $block['children'] = $newBlock['children'];
+            }
+        }
+
+        return $this;
     }
 }

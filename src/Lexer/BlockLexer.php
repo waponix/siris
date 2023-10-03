@@ -1,7 +1,7 @@
 <?php
 namespace Waponix\Siris\Lexer;
 
-class BlockLexer extends Lexer
+class BlockLexer extends AbstractLexer
 {
     const BLOCK_START = 'BLOCK_S';
     const BLOCK_END   = 'BLOCK_E';
@@ -56,22 +56,7 @@ class BlockLexer extends Lexer
     private $blockGroups = [];
     private $nodes = [];
     private $offset = 0;
-
-    public function parse(string $string): array
-    {
-        $tokens = parent::parse($string);
-
-        $tokenGroup = [];
-
-        foreach ($tokens as $token) {
-            $this->identifyBlocks($token, $tokenGroup);
-        }
-
-        $blocks = $this->blocks;
-        $this->reset();
-
-        return $blocks;
-    }
+    private $blockMap = [];
 
     public function parseFile(string $file): array
     {
@@ -83,7 +68,7 @@ class BlockLexer extends Lexer
 
         $tokenGroup = [];
         while ($line = fgets($handle)) {
-            $tokens = parent::parse($line);
+            $tokens = $this->parse($line);
         
             foreach ($tokens as $token) {
                 $this->identifyBlocks($token, $tokenGroup);
@@ -95,9 +80,27 @@ class BlockLexer extends Lexer
 
         fclose($handle);
         $blocks = $this->blocks;
-        $this->reset();
 
         return $blocks;
+    }
+
+    public function getBlockMap(): array
+    {
+        return $this->blockMap;
+    }
+
+    public function reset(): self
+    {
+        $this->blocks = [];
+        $this->startBlocks = [];
+        $this->blockNames = [];
+        $this->lookups = [];
+        $this->blockGroups = [];
+        $this->nodes = [];
+        $this->offset = 0;
+        $this->blockMap = [];
+
+        return $this;
     }
 
     private function identifyBlocks(array $token, array &$tokenGroup): self
@@ -220,7 +223,13 @@ class BlockLexer extends Lexer
 
         // set the node type
         $realName = $this->getRealName($name);
-        $blocks[$name]['node'] = $this->identifyNode($realName);
+        $blocks[$name]['node'] = $node = $this->identifyNode($realName);
+
+        if ($node === self::NODE_BLOCK) {
+            $loc = $this->blockNames;
+            $loc[] = $name;
+            $this->blockMap[$name] = implode('.', $loc);
+        }
 
         // set flag if node has parent
         $blocks[$name]['hasParent'] = !empty($this->blockNames) ? true : false;
@@ -311,16 +320,5 @@ class BlockLexer extends Lexer
     private function getRealName($name)
     {
         return strtok($name, self::N_DIVIDER);
-    }
-
-    private function reset()
-    {
-        $this->blocks = [];
-        $this->startBlocks = [];
-        $this->blockNames = [];
-        $this->lookups = [];
-        $this->blockGroups = [];
-        $this->nodes = [];
-        $this->offset = 0;
     }
 }
