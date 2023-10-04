@@ -20,12 +20,12 @@ class Siris
     {
     }
 
-    public function render(string $file)
+    public function render(string $file, array $variables = [])
     {
-        $blocks = $this->load($file);
+        $blocks = $this->load($file, $variables);
 
         // will contain block values if the file is extending a template
-        $parentBlocks = $this->getParentTemplate($blocks, $map);
+        $parentBlocks = $this->getParentTemplate($blocks, $variables, $map);
 
         if ($parentBlocks !== null) {
             foreach ($blocks as $id => $block) {
@@ -72,7 +72,7 @@ class Siris
         return $this;
     }
 
-    private function getParentTemplate(array &$blocks, ?array &$map = []): null|array
+    private function getParentTemplate(array &$blocks, array $variables = [], ?array &$map = []): null|array
     {
         if (current($blocks)['node'] === BlockLexer::NODE_EXTENDS) {
             $block = array_shift($blocks);
@@ -94,7 +94,7 @@ class Siris
                 $file[] = $token['data'];
             }
 
-            $parentBlocks = $this->load(implode($file), $map);
+            $parentBlocks = $this->load(implode($file), $variables, $map);
 
             return $parentBlocks;
         }
@@ -102,7 +102,7 @@ class Siris
         return null;
     }
 
-    private function load(string $file, ?array &$map = []): array
+    private function load(string $file, array &$variables = [], ?array &$map = []): array
     {
         $this->file = $file;
         $blocks = $this->lexer->parseFile($file);
@@ -110,13 +110,13 @@ class Siris
         $this->lexer->reset();
 
         foreach ($blocks as &$block) {
-            $this->interpretBlock($block);
+            $this->interpretBlock($block, $variables);
         }
 
         return $blocks;
     }
 
-    private function interpretBlock(array &$block, ?array &$parent = null): void
+    private function interpretBlock(array &$block, array &$variables = [], ?array &$parent = null): void
     {
         // get the context for the block
         $position = $range = $this->getBlockRange($block);
@@ -128,9 +128,9 @@ class Siris
 
         $block['ctx'] = $this->getContext($range, $parentContext, $offset);
         
-        if ($block['hasChild'] === true) {
+        if (!empty($block['children'])) {
             foreach ($block['children'] as &$childBlock) {
-                $this->interpretBlock($childBlock, $block);
+                $this->interpretBlock($childBlock, $variables, $block);
             }
         }
 
@@ -144,6 +144,9 @@ class Siris
 
         // remove unnecessary characters and symbols
         switch ($block['node']) {
+            case BlockLexer::NODE_PRINT:
+                $this->normalizePrintBlock($block, $variables);
+                break;
             case BlockLexer::NODE_EXPRESSION:
             case BlockLexer::NODE_EXTENDS:
                 $this->normalizeExpressionBlock($block);
@@ -152,7 +155,7 @@ class Siris
                 $this->normalizeComponentBlock($block);
                 break;
             case BlockLexer::NODE_FORLOOP:
-            case BlockLexer::NODE_IF: 
+            case BlockLexer::NODE_IF:
                 $this->normalizeSpecialBlock($block);
                 break;
             default: $this->normalizeBlock($block);
@@ -163,13 +166,34 @@ class Siris
     {
         $blockContext = $block['ctx'];
 
-        if ($block['hasChild'] === true) {
+        if (!empty($block['children'])) {
             foreach ($block['children'] as $childBlock) {
                 $blockContext = str_replace('{@' . $childBlock['id'] . '@}' , $this->buildContext($childBlock), $blockContext);
             }
         }
 
         return trim($blockContext);
+    }
+
+    private function normalizePrintBlock(array &$block, array &$variables = []): void
+    {
+        $tokens = $this->lexer->parse($block['ctx']);
+
+        do {
+            $token = array_shift($tokens);
+            if ($token === null || $token['data'] === '{{') break;
+        } while ($token !== null);
+
+        // remove the last two token to remove the closing block
+        array_pop($tokens);
+
+        $exp = '';
+        foreach ($tokens as $token) {
+            $exp .= $token['data'];
+        }
+
+        $block['exp'] = $exp;
+        $block['ctx'] = $variables[trim($exp)];
     }
 
     private function normalizeExpressionBlock(array &$block): void
@@ -300,7 +324,7 @@ class Siris
 
         $key = array_shift($keys);
         while ($key !== null) {
-            if (!isset($block['children'], $block['children'][$key])) {
+            if (!isset($block['children'][$key])) {
                 $found = false;
                 break;
             }

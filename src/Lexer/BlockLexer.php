@@ -6,17 +6,20 @@ class BlockLexer extends AbstractLexer
     const BLOCK_START = 'BLOCK_S';
     const BLOCK_END   = 'BLOCK_E';
     const BLOCK_NAME  = 'BLOCK_N';
+    const BLOCK_PRINT = 'BLOCK_P';
 
-    const NODE_BLOCK     = 'n_block';
-    const NODE_IF        = 'n_if';
-    const NODE_FORLOOP   = 'n_forloop';
-    const NODE_SET       = 'n_set';
-    const NODE_PRINT     = 'n_print';
-    const NODE_INCLUDE   = 'n_include';
-    const NODE_EXTENDS   = 'n_extends';
-    const NODE_ATTR      = 'n_attr';
-    const NODE_COMPONENT = 'n_component';
-    const NODE_USE       = 'n_use';
+    const PRINT_KEY = 'print';
+
+    const NODE_BLOCK      = 'n_block';
+    const NODE_IF         = 'n_if';
+    const NODE_FORLOOP    = 'n_forloop';
+    const NODE_SET        = 'n_set';
+    const NODE_PRINT      = 'n_print';
+    const NODE_INCLUDE    = 'n_include';
+    const NODE_EXTENDS    = 'n_extends';
+    const NODE_ATTR       = 'n_attr';
+    const NODE_COMPONENT  = 'n_component';
+    const NODE_USE        = 'n_use';
     const NODE_EXPRESSION = 'n_expression';
 
     const RSRV_KEY_SET       = 'set';
@@ -57,6 +60,7 @@ class BlockLexer extends AbstractLexer
     private $nodes = [];
     private $offset = 0;
     private $blockMap = [];
+    private $printBlockStart = null;
 
     public function parseFile(string $file): array
     {
@@ -106,7 +110,7 @@ class BlockLexer extends AbstractLexer
     private function identifyBlocks(array $token, array &$tokenGroup): self
     {
         while (true) {
-            while(true) {
+            while (true) {
                 if ($this->getCurrentLookup() !== self::BLOCK_NAME) break;
                 
                 // begin looking for the block name
@@ -151,6 +155,38 @@ class BlockLexer extends AbstractLexer
 
                 $this->moveToNextLookup();
                 $tokenGroup = [];
+                break;
+            }
+
+            while (true) {
+                // detect start of print block
+                if ($this->getCurrentLookup() !== self::BLOCK_PRINT && $token['token'] === self::TOKEN_BRACKET && $token['data'] === '{{') {
+                    $this->setNextLookup(self::BLOCK_PRINT);
+
+                    $token['pos'] += $this->offset;
+                    $this->addStartBlock($token);
+
+                    break 2;
+                }
+
+                if ($this->getCurrentLookup() === self::BLOCK_PRINT && $token['token'] === self::TOKEN_BRACKET && $token['data'] === '}}') {
+                    $token['pos'] += $this->offset;
+
+                    $temp = $token;
+                    $temp['data'] = self::PRINT_KEY;
+                    $this->setCurrentBlockName($temp);
+                    
+                    $name = $this->takeCurrentBlockName();
+                    $this
+                        ->addBlock($name, [
+                            'id' => $name,
+                            'name' => '',
+                            'loc' => dechex($this->takeStartBlock()['pos']) . self::L_DIVIDER . dechex($token['pos'] + 1)
+                        ])
+                        ->moveToNextLookup();
+                    $this->printBlockStart = null;
+                }
+
                 break;
             }
 
@@ -204,13 +240,6 @@ class BlockLexer extends AbstractLexer
 
         // loop through the blocknames to compose the nested structure
         foreach ($this->blockNames as $blockName) {
-            if (!isset($blocks[$blockName])) {
-                $blocks[$blockName] = [
-                    'children' => [],
-                ];
-            } else if (!isset($blocks[$blockName]['children'])) {
-                $blocks[$blockName]['children'] = [];
-            }
             $blocks = &$blocks[$blockName]['children'];
         }
 
@@ -234,9 +263,6 @@ class BlockLexer extends AbstractLexer
         // set flag if node has parent
         $blocks[$name]['hasParent'] = !empty($this->blockNames) ? true : false;
 
-        // set flag if node has children
-        $blocks[$name]['hasChild'] = !empty($blocks[$name]['children']) ? true : false;
-
         return $this;
     }
 
@@ -252,6 +278,7 @@ class BlockLexer extends AbstractLexer
             self::RSRV_KEY_COMPONENT => self::NODE_COMPONENT,
             self::RSRV_KEY_USE => self::NODE_USE,
             self::RSRV_KEY_QM => self::NODE_EXPRESSION,
+            self::PRINT_KEY => self::NODE_PRINT,
             strtolower($name) => self::NODE_BLOCK,
         };
     }
@@ -276,7 +303,7 @@ class BlockLexer extends AbstractLexer
 
     private function setCurrentBlockName(array $token): self
     {
-        $name = match(in_array($token['data'], self::RSRV_KEYS)) { 
+        $name = match(in_array($token['data'], self::RSRV_KEYS) || $token['data'] === self::PRINT_KEY) { 
             true => implode(self::N_DIVIDER, [$token['data'], dechex($token['pos'] + $this->offset) . dechex($token['length'])]),
             false => $token['data']
         };
