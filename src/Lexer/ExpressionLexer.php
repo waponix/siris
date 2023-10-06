@@ -15,12 +15,13 @@ class ExpressionLexer extends AbstractLexer
     private $skipQuote = false;
     private $lookup = [];
 
-    public function parse (string $string): array
+    public function parse(string $string): array
     {
         $tokens = parent::parse($string);
 
         $stringGroup = [];
         $foundEqualSign = null;
+        $foundVariable = null;
 
         while (count($tokens)) {
             $token = array_shift($tokens);
@@ -88,11 +89,11 @@ class ExpressionLexer extends AbstractLexer
             } else if ($token['token'] === self::TOKEN_STRING && strtolower($token['data']) === 'null') {
                 $tokenType = self::TOKEN_NULL;
                 $data = $token['data'];
-            } else if ($token['token'] === self::TOKEN_STRING && in_array(strtolower($token['data']), ['is'])) {
+            } else if ($token['token'] === self::TOKEN_STRING && strtolower($token['data']) === 'is') {
                 $tokenType = self::TOKEN_OPERATOR;
-                $data = '=';
+                $data = '==';
                 $foundEqualSign = true;
-            } else if ($token['token'] === self::TOKEN_STRING && in_array(strtolower($token['data']), ['not'])) {
+            } else if ($token['token'] === self::TOKEN_STRING && strtolower($token['data']) === 'not') {
                 $tokenType = self::TOKEN_OPERATOR;
                 if ($foundEqualSign === true) {
                     $data = '!=';
@@ -103,17 +104,30 @@ class ExpressionLexer extends AbstractLexer
                         $prevToken = $this->popToken();
                     } while ($prevToken['token'] !== self::TOKEN_OPERATOR || $prevToken['data'] !== '=');
                 } else {
-                    $data = '!';    
+                    $data = '!';
+                }
+            } else if ($token['token'] === self::TOKEN_DOT) {
+                $tokenType = $token['token'];
+                $data = $token['data'];
+
+                if ($foundVariable === true) {
+                    $prevToken = $this->popToken();
+                    $tokenType = self::TOKEN_VARIABLE;
+                    $data = implode([$prevToken['data'], $token['data']]);
                 }
             } else if ($token['token'] === self::TOKEN_STRING) {
                 $tokenType = self::TOKEN_VARIABLE;
-                $data = '$' . $token['data'];
+                $data = $token['data'];
             } else {
                 $tokenType = $token['token'];
                 $data = $token['data'];
 
-                if ($token['token'] !== self::TOKEN_SPACE) {
+                if ($token['token'] !== self::TOKEN_SPACE && $foundEqualSign === true) {
                     $foundEqualSign = null;
+                }
+
+                if ($foundVariable === true) {
+                    $foundVariable = null;
                 }
             }
 
@@ -133,6 +147,11 @@ class ExpressionLexer extends AbstractLexer
     {
         $this->tokens[] = $token;
         return $this;
+    }
+
+    private function currentToken(): array
+    {
+        return end($this->tokens);
     }
 
     private function popToken(): array

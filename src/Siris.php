@@ -32,6 +32,8 @@ class Siris
 
         if ($parentBlocks !== null) {
             foreach ($blocks as $id => $block) {
+                // skip if not found 
+                if (!isset($map[$id])) continue;
                 // get the targetted block to update
                 $target = $map[$id];
                 $this->updateBlock($parentBlocks, $target, $block);
@@ -122,6 +124,7 @@ class Siris
     private function interpretBlock(array &$block, array &$variables = [], ?array &$parent = null): void
     {
         // get the context for the block
+        $localVariables = [];
         $position = $range = $this->getBlockRange($block);
         $parentContext = $parent['ctx'] ?? null;
         $offset = 0;
@@ -178,16 +181,20 @@ class Siris
         return trim($blockContext);
     }
 
-    private function runExpression(string $expression, array &$variables = []): string
+    private function evaluateExpression(string $expression, array &$variables = []): mixed
     {
         $tokens = $this->expressionLexer->parse($expression);
+
+        $assign = null;
+        $varName = null;
+        $variable = null;
 
         $exp = '';
         foreach ($tokens as $token) {
             $data = $token['data'];
 
             if ($token['token'] === ExpressionLexer::TOKEN_VARIABLE) {
-                $data = $variables[substr($token['data'], 1)];
+                $data = $variables[$token['data']];
 
                 $data = match(gettype($data)) {
                     'string' => implode(['"' , $data, '"']),
@@ -221,8 +228,8 @@ class Siris
         $block['exp'] = $exp;
 
         // process the expression
-        $context = $this->runExpression($exp, $variables);
-        $block['ctx'] =  (string) $context;
+        $result = $this->evaluateExpression($exp, $variables);
+        $block['ctx'] =  (string) $result;
     }
 
     private function normalizeExpressionBlock(array &$block): void

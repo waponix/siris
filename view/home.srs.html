@@ -1,11 +1,14 @@
 {@ extends './view/template.srs.html' @}
 
+{@ use './view/component/menuitem' @}
+{@ use './view/component/searchfield' @}
+
 {@ body 
     <div class="container"></div>
 @}
 
 {@ footer 
-    <p>{{ footerText . ", Hell yeah!" }}</p>    
+    <p>{{ footer . ", Hell yeah!" }}</p>    
 @}
 
 {@ menu 
@@ -13,11 +16,10 @@
         <nav>{{ item1 }}</nav>
         <nav>{{ item2 }}</nav>
         <nav>{{ item3 }}</nav>
-    </div>  
+    </div>
 @}
 
 {@ stylesheets
-    
     <style>
         body {
             padding: 0;
