@@ -20,7 +20,7 @@ class AbstractLexer
     const TOKEN_SPECIAL     = 'SPECIAL';
 
     // Symbol hashmap that correspond with the token
-    private $symbols = [
+    protected $symbols = [
         self::TOKEN_SPACE => [' '],
         self::TOKEN_COLON => [':', ';'],
         self::TOKEN_PARENTHESIS => ['(', ')'],
@@ -33,9 +33,9 @@ class AbstractLexer
         self::TOKEN_SPECIAL => ['?', '$', '@', '#', '_', '\\'],
     ];
 
-    private $tokens = [];
-    private $state = null; // state is the token name
-    private $value = [];
+    protected $tokens = [];
+    protected $state = null; // state is the token name
+    protected $value = [];
 
     /**
      * Begin parsing the string
@@ -88,7 +88,7 @@ class AbstractLexer
      * @param string $char
      * @return string
      */
-    private function determineState(string $char): string
+    protected function determineState(string $char): string
     {
         do {
             foreach ($this->symbols as $token => $symbols) {
@@ -124,7 +124,7 @@ class AbstractLexer
      * @param int $pos
      * @return Lexer
      */
-    private function addToken(?string $state, ?string $char, int $pos): self
+    protected function addToken(?string $state, ?string $char, int $pos): self
     {
         if ($this->isSameState($state)) {
             // concat this char to the previous value, no need to update state
@@ -149,7 +149,7 @@ class AbstractLexer
      * @param ?string $state
      * @return Lexer
      */
-    private function setState(?string $state): self
+    protected function setState(?string $state): self
     {
         $this->state = $state;
         return $this;
@@ -161,7 +161,7 @@ class AbstractLexer
      * @param null|string|array $state
      * @return bool
      */
-    private function isSameState(null|string|array $state): bool
+    protected function isSameState(null|string|array $state): bool
     {
         if ($this->state === null) return true;
         if (is_array($state)) return in_array($this->state, $state);
@@ -174,7 +174,7 @@ class AbstractLexer
      * @param string $nextChar
      * @return bool
      */
-    private function isRealDot(?string $nextChar): bool
+    protected function isRealDot(?string $nextChar): bool
     {
         if ($nextChar === null) return true;
         $nextState = $this->determineState($nextChar);
@@ -189,7 +189,7 @@ class AbstractLexer
      * @param string $char3
      * @return bool
      */
-    private function isRealComma(?string $char1, ?string $char2, ?string $char3): bool
+    protected function isRealComma(?string $char1, ?string $char2, ?string $char3): bool
     {
         if ($char1 === null || $char3 === null) return true;
         $state1 = $this->determineState($char1);
@@ -205,7 +205,7 @@ class AbstractLexer
      * @param string $nextChar
      * @return bool
      */
-    private function isRealOperator(?string $currentChar, ?string $nextChar): bool
+    protected function isRealOperator(?string $currentChar, ?string $nextChar): bool
     {
         if ($nextChar === null) return true;
         if (!in_array($currentChar, ['+', '-'])) return true; // + and - are only checked because it might by signing a number
@@ -220,7 +220,7 @@ class AbstractLexer
      * @param ?string $char
      * @return Lexer
      */
-    private function appendChar(?string $char): self
+    protected function appendChar(?string $char): self
     {
         if ($char === null) return $this;
         $this->value[] = $char;
@@ -232,7 +232,7 @@ class AbstractLexer
      * 
      * @return Lexer
      */
-    private function resetValue(): self
+    protected function resetValue(): self
     {
         $this->value = [];
         return $this;
@@ -246,7 +246,7 @@ class AbstractLexer
      * @param int $pos
      * @return array
      */
-    private function createToken(string $token, string $value, int $pos): array
+    protected function createToken(string $token, string $value, int $pos): array
     {
         do {
             if ($token !== self::TOKEN_NUMBER) break;

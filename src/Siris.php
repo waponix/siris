@@ -4,10 +4,12 @@ namespace Waponix\Siris;
 use Waponix\Pocket\Attribute\Service;
 use Waponix\Siris\Lexer\AbstractLexer;
 use Waponix\Siris\Lexer\BlockLexer;
+use Waponix\Siris\Lexer\ExpressionLexer;
 
 #[Service(
     args: [
-        'lexer' => BlockLexer::class,
+        'blockLexer' => BlockLexer::class,
+        'expressionLexer' => ExpressionLexer::class,
     ]
 )]
 class Siris
@@ -15,7 +17,8 @@ class Siris
     private ?string $file = null;
 
     public function __construct(
-            private readonly AbstractLexer $lexer,
+            private readonly AbstractLexer $blockLexer,
+            private readonly AbstractLexer $expressionLexer
         )
     {
     }
@@ -77,7 +80,7 @@ class Siris
         if (current($blocks)['node'] === BlockLexer::NODE_EXTENDS) {
             $block = array_shift($blocks);
             // loading the extended template will update the source file
-            $tokens = $this->lexer->parse($block['exp']);
+            $tokens = $this->blockLexer->parse($block['exp']);
 
             $start = null;
             $file = [];
@@ -105,9 +108,9 @@ class Siris
     private function load(string $file, array &$variables = [], ?array &$map = []): array
     {
         $this->file = $file;
-        $blocks = $this->lexer->parseFile($file);
-        $map = $this->lexer->getBlockMap();
-        $this->lexer->reset();
+        $blocks = $this->blockLexer->parseFile($file);
+        $map = $this->blockLexer->getBlockMap();
+        $this->blockLexer->reset();
 
         foreach ($blocks as &$block) {
             $this->interpretBlock($block, $variables);
@@ -175,9 +178,32 @@ class Siris
         return trim($blockContext);
     }
 
+    private function runExpression(string $expression, array &$variables = []): string
+    {
+        $tokens = $this->expressionLexer->parse($expression);
+
+        $exp = '';
+        foreach ($tokens as $token) {
+            $data = $token['data'];
+
+            if ($token['token'] === ExpressionLexer::TOKEN_VARIABLE) {
+                $data = $variables[substr($token['data'], 1)];
+
+                $data = match(gettype($data)) {
+                    'string' => implode(['"' , $data, '"']),
+                    gettype($data) => $data
+                };
+            }
+
+            $exp .= $data;
+        }
+        
+        return eval("return " . trim($exp) . ";");
+    }
+
     private function normalizePrintBlock(array &$block, array &$variables = []): void
     {
-        $tokens = $this->lexer->parse($block['ctx']);
+        $tokens = $this->blockLexer->parse($block['ctx']);
 
         do {
             $token = array_shift($tokens);
@@ -193,12 +219,15 @@ class Siris
         }
 
         $block['exp'] = $exp;
-        $block['ctx'] = $variables[trim($exp)];
+
+        // process the expression
+        $context = $this->runExpression($exp, $variables);
+        $block['ctx'] =  (string) $context;
     }
 
     private function normalizeExpressionBlock(array &$block): void
     {
-        $tokens = $this->lexer->parse($block['ctx']);
+        $tokens = $this->blockLexer->parse($block['ctx']);
 
         $token = array_shift($tokens);
         while (!!$token) {
@@ -221,7 +250,7 @@ class Siris
 
     private function normalizeComponentBlock(array &$block): void
     {
-        $tokens = $this->lexer->parse($block['ctx']);
+        $tokens = $this->blockLexer->parse($block['ctx']);
 
         $token = array_shift($tokens);
         while (!!$token) {
@@ -243,7 +272,7 @@ class Siris
 
     private function normalizeSpecialBlock(array &$block): void
     {
-        $tokens = $this->lexer->parse($block['ctx']);
+        $tokens = $this->blockLexer->parse($block['ctx']);
 
         $token = array_shift($tokens);
         while (!!$token) {
@@ -265,7 +294,7 @@ class Siris
 
     private function normalizeBlock(array &$block)
     {
-        $tokens = $this->lexer->parse($block['ctx']);
+        $tokens = $this->blockLexer->parse($block['ctx']);
 
         $token = array_shift($tokens);
         while (!!$token) {
